@@ -38,7 +38,7 @@ v5 = caption(view(180, 35, False, fit=[(lipbox, None, None)]), "Close-up from be
 v3 = caption(view(90, 0, True, W=900, H=700), "Side view: tilt %.1f deg, hinge %.1f deg, screen leans back %.0f deg" % (M.TILT, M.HINGE, M.HINGE - 90 - M.TILT))
 pc = Q.to_world("A", 55.0, M.top(55.0), 0.0)
 padbox = np.array([[pc - [10, 10, 7], pc + [10, 10, 7], pc]], float)
-v6 = caption(view(-20, 50, False, fit=[(padbox, None, None)], mesh=stand_nopad), "Close-up (pad hidden): round pocket 6.2 x 1 mm, 0.8 mm chamfers")
+v6 = caption(view(-20, 50, False, fit=[(padbox, None, None)], mesh=stand_nopad), "Close-up (pad hidden): round pocket 6.2 x 1 mm, 0.5 mm chamfers")
 v4 = caption(view(0, 90, True, W=900, H=700), "Top view: X at 45 deg under the laptop footprint")
 
 sheet = Image.new("RGB", (1800, 676 + 736 + 676), (255, 255, 255))

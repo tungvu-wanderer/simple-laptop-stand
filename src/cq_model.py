@@ -4,7 +4,7 @@ import numpy as np
 import cadquery as cq
 import model as M
 
-CH = 0.8             # chamfer on plate-face edges
+CH = 0.5             # chamfer on plate-face edges (also keeps elephant foot off the bed-side edges)
 CH_CORNER = 3.0      # chamfer on outer corners seen in profile
 CH_LIP = 1.2
 WIN_R = 4.0
@@ -40,6 +40,13 @@ def lip_normal(k):
     return n / np.linalg.norm(n)
 
 
+def top_normal(k):
+    """Unit normal of the laptop plane in the plate frame: the arm top is v = top(u) + sigma * TS * w'."""
+    sg = PL[k]["sigma"]
+    n = np.array([-M.TS, 1.0, -sg * M.TS])
+    return n / np.linalg.norm(n)
+
+
 def _plane(origin, normal):
     n = np.asarray(normal, float)
     n /= np.linalg.norm(n)
@@ -60,7 +67,10 @@ def build_plate_local(k, chamfer=True, pockets=True):
     u3 = M.LIP_T + TH / 2
     p3s = np.array([u3, top(u3)])
     p4s = p3s + M.LIP_H * N
-    pts = [(0, 0), (L, 0), (L, top(L)), tuple(p3s), tuple(p4s), (0, p4s[1])]
+    # the arm top is trimmed to the laptop plane below, so the extrusion is built TH/2 * TS taller than the plane
+    mg = M.TS * TH / 2 + 0.5
+    q = p3s + mg * N[1] * N                    # where the raised top line meets the lip stub
+    pts = [(0, 0), (L, 0), (L, top(L) + mg), tuple(q), tuple(p4s), (0, p4s[1])]
     um, hw = L / 2, M.SLOT / 2
     from shapely.geometry import Polygon, box
     poly = Polygon(pts)
@@ -84,7 +94,7 @@ def build_plate_local(k, chamfer=True, pockets=True):
     nl = lip_normal(k)
     p3 = np.array([M.LIP_T, top(M.LIP_T), 0.0])
     t1 = cq.Workplane(_plane(p3, nl)).rect(400, 400).extrude(200)
-    t2 = cq.Workplane(_plane(p3, [N[0], N[1], 0.0])).rect(400, 400).extrude(200)
+    t2 = cq.Workplane(_plane(p3, top_normal(k))).rect(400, 400).extrude(200)
     solid = solid.cut(t1.intersect(t2))
 
     shape = solid.val()
@@ -103,29 +113,26 @@ def _close(a, b, tol=1e-3):
 def _chamfer(shape, k, p3, nl):
     TH = M.TH
     # 1) corner chamfers on vertical (through-thickness) edges seen in profile
-    targets = [((0.0, 0.0), M.CH_C if hasattr(M, "CH_C") else CH_CORNER),
-               ((M.L, 0.0), CH_CORNER),
-               ((M.L, M.top(M.L)), CH_CORNER),
-               ((0.0, M.top(M.LIP_T + TH / 2) + M.LIP_H * M.NPROF[1]), CH_LIP)]
-    for (x, y), size in targets:
+    sg = PL[k]["sigma"]
+    targets = [((0.0, 0.0), 0.0, CH_CORNER),
+               ((M.L, 0.0), 0.0, CH_CORNER),
+               ((M.L, M.top(M.L)), sg * M.TS, CH_CORNER),     # rear top corner follows the tilted top face
+               ((0.0, M.top(M.LIP_T + TH / 2) + M.LIP_H * M.NPROF[1]), 0.0, CH_LIP)]
+    for (x, y), dv, size in targets:
         es = []
         for e in shape.Edges():
             a, b = e.startPoint().toTuple(), e.endPoint().toTuple()
-            if _close(a[0], x) and _close(b[0], x) and _close(a[1], y) and _close(b[1], y) and abs(a[2] - b[2]) > TH - 1e-3:
+            if (_close(a[0], x) and _close(b[0], x) and _close(a[1], y + dv * a[2]) and _close(b[1], y + dv * b[2])
+                    and abs(a[2] - b[2]) > TH - 1e-3):
                 es.append(e)
         if es:
             shape = shape.chamfer(size, None, es)
 
-    # 2) chamfer plate-face edges, leaving pad-bearing edges square
+    # 2) chamfer every plate-face edge
     es = []
     for e in shape.Edges():
         a, b = np.array(e.startPoint().toTuple()), np.array(e.endPoint().toTuple())
         if not (_close(abs(a[2]), TH / 2) and _close(abs(b[2]), TH / 2) and a[2] * b[2] > 0):
-            continue
-        on_slope = _close(a[1], M.top(a[0])) and _close(b[1], M.top(b[0]))
-        on_bottom = _close(a[1], 0.0) and _close(b[1], 0.0)
-        on_face = _close((a - p3) @ nl, 0.0) and _close((b - p3) @ nl, 0.0)
-        if on_slope or on_bottom or on_face:
             continue
         es.append(e)
     return shape.chamfer(CH, None, es)
@@ -136,7 +143,7 @@ def _pockets(solid, k, p3, nl):
     N = M.NPROF
     cuts = []
     for u in M.TOP_PADS_U:
-        cuts.append(((u, M.top(u), 0.0), (N[0], N[1], 0.0)))
+        cuts.append(((u, M.top(u), 0.0), tuple(top_normal(k))))
     for u in M.BOT_PADS_U:
         cuts.append(((u, 0.0, 0.0), (0.0, -1.0, 0.0)))
     c = p3 + M.LIP_PAD_C * np.array([N[0], N[1], 0.0])
@@ -171,7 +178,7 @@ def pad_specs(k):
         out.append((to_world(k, u, 0.0, 0.0), np.array([0, 0, -1.0])))
     N = M.NPROF
     for u in M.TOP_PADS_U:
-        out.append((to_world(k, u, M.top(u), 0.0), vec_world(k, N[0], N[1], 0.0)))
+        out.append((to_world(k, u, M.top(u), 0.0), vec_world(k, *top_normal(k))))
     nl = lip_normal(k)
     p3 = np.array([M.LIP_T, M.top(M.LIP_T)])
     ctr = p3 + M.LIP_PAD_C * N

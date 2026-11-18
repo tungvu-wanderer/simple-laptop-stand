@@ -10,10 +10,6 @@ for k in "AB":
     s = Q.build_plate_local(k)
     flat[k] = s.translate(cq.Vector(0, 0, -s.BoundingBox().zmin))
     cq.exporters.export(flat[k], f"{out}/xstand_plate_{k}.stl", tolerance=0.01, angularTolerance=0.1)
-bA, bB = flat["A"].BoundingBox(), flat["B"].BoundingBox()
-dy = bA.ymax + 15.0 - bB.ymin
-both = cq.Compound.makeCompound([flat["A"], flat["B"].translate(cq.Vector(0, dy, 0))])
-cq.exporters.export(both, f"{out}/xstand_plates_AB.stl", tolerance=0.01, angularTolerance=0.1)
 
 # overlap check in the assembled pose
 sh = Q.stand_world_shapes()
@@ -32,7 +28,7 @@ def load(p):
     return v.reshape(-1, 3, 3)
 
 
-for name in ("xstand_plate_A", "xstand_plate_B", "xstand_plates_AB"):
+for name in ("xstand_plate_A", "xstand_plate_B"):
     T = load(f"{out}/{name}.stl")
     key = lambda p: tuple(np.round(p, 3))
     ec = collections.Counter()

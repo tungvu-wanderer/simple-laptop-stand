@@ -16,7 +16,7 @@ Run the scripts from `src/`; they import each other by module name.
 
 ```sh
 mkdir -p out
-uv run --directory src python export_plates.py ../stl     # plates A, B and the combined file
+uv run --directory src python export_plates.py ../stl     # plates A and B
 uv run --directory src python export_stl.py ../stl        # plates and coupon v1
 uv run --directory src python make_renders.py ../out      # preview renders
 ```

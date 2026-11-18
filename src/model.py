@@ -9,21 +9,20 @@ from shapely.geometry.polygon import orient
 TH = 6.0            # plate thickness
 L = 250.0           # arm length
 HF = 30.0           # arm height at the front end (under the slope)
-REAR = 100.0        # arm height at the rear end
-LIP_H = 12.0        # front lip height above slope, measured along slope normal
-LIP_T = 10.0        # lip block depth along the arm
+REAR = 130.0        # arm height at the rear end
+LIP_H = 15.0        # front lip height above slope, measured along slope normal
+LIP_T = 13.0        # lip block depth along the arm
 SLOT = 5.80         # slot width (printer: slots print +0.15 wide, Z thickness -0.15)
-SLOT_EXTRA = 0.5    # extra depth per slot so plates reach the table
+SLOT_EXTRA = 0.15   # extra depth per slot; the two slot tips leave a 2 x this gap so each plate stands on its own feet
 ZB = 1.0            # table-pad protrusion (plates sit this far above z=0)
 PAD_D, PAD_T, PAD_SINK = 6.0, 2.0, 1.0
 LAP_W, LAP_D, LAP_H, LID_T = 313.0, 221.2, 15.5, 4.0
-LEAN = 12.0         # screen back-lean from vertical used for the preview
+HINGE = 123.6       # lid opening angle assumed by the preview
 POCKET_D, POCKET_DEPTH = 6.2, 1.0
 
 TS = (REAR - HF) / L                                           # arm slope (tan)
 S = math.atan(TS)
 TILT = math.degrees(math.atan(TS / math.sqrt(0.5)))            # laptop plane tilt
-HINGE = 90.0 + TILT + LEAN                                     # lid opening angle
 NPROF = np.array([-math.sin(S), math.cos(S)])                  # slope normal (u,v)
 
 
@@ -31,7 +30,7 @@ TOP_PADS_U = (55.0, L - 30.0)
 BOT_PADS_U = (25.0, L - 25.0)
 
 
-LIP_PAD_C = 6.0                    # pad centre along the lip face from the slope
+LIP_PAD_C = 9.0                    # pad centre along the lip face from the slope
 _nu = 1 / math.sqrt(1 + math.cos(S) ** 2) * math.cos(S)       # u-component of the mitered face normal
 LIP_POCKET_U = POCKET_DEPTH / _nu                               # u offset giving 1 mm depth along the normal
 
@@ -280,8 +279,8 @@ def laptop_mesh():
     x = np.array([1.0, 0, 0])
     p = np.array([0, math.cos(th), math.sin(th)])
     n = np.array([0, -math.sin(th), math.cos(th)])
-    y_f = -106.07 + LIP_T * math.sqrt(0.5) + 0.5
-    zf = ZB + HF + (y_f + 106.07) * math.tan(th) + (PAD_T - PAD_SINK)
+    y_f = -L / 2 * math.sqrt(0.5) + LIP_T * math.sqrt(0.5) + 0.5
+    zf = ZB + HF + (y_f + L / 2 * math.sqrt(0.5)) * math.tan(th) + (PAD_T - PAD_SINK)
     F = np.array([-LAP_W / 2, y_f, zf])
 
     def slab(o, a, b, c, da, db, dc):
