@@ -93,8 +93,9 @@ def build_plate_local(k, chamfer=True, pockets=True):
     # mitered lip face
     nl = lip_normal(k)
     p3 = np.array([M.LIP_T, top(M.LIP_T), 0.0])
-    t1 = cq.Workplane(_plane(p3, nl)).rect(400, 400).extrude(200)
-    t2 = cq.Workplane(_plane(p3, top_normal(k))).rect(400, 400).extrude(200)
+    big = 4 * M.L                                  # cutters must cover the whole arm, rear end included
+    t1 = cq.Workplane(_plane(p3, nl)).rect(big, big).extrude(big)
+    t2 = cq.Workplane(_plane(p3, top_normal(k))).rect(big, big).extrude(big)
     solid = solid.cut(t1.intersect(t2))
 
     shape = solid.val()

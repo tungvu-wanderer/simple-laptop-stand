@@ -1,20 +1,10 @@
 import sys, collections, struct
 import numpy as np
 import cadquery as cq
-import cq_model as Q
 import model as M
 
 out = sys.argv[1]
 TH = M.TH
-
-def flat_for_print(shape):
-    bb = shape.BoundingBox()
-    return shape.translate(cq.Vector(0, 0, -bb.zmin))   # thickness on the bed, profile in XY
-
-# plates: local frame already has the profile in XY and thickness along Z
-for k in "AB":
-    s = flat_for_print(Q.build_plate_local(k))
-    cq.exporters.export(s, f"{out}/xstand_plate_{k}.stl", tolerance=0.01, angularTolerance=0.1)
 
 # slot-fit coupon: slotted block with +0.2/+0.3/+0.4 mm slots, plus a 6 mm tongue plate
 slots = [TH + 0.2, TH + 0.3, TH + 0.4]
@@ -45,7 +35,7 @@ def load(p):
         v = a["v"].reshape(-1, 3).astype(float)
     return v.reshape(-1, 3, 3)
 
-for name in ("xstand_plate_A", "xstand_plate_B", "xstand_slot_coupon"):
+for name in ("xstand_slot_coupon",):
     T = load(f"{out}/{name}.stl")
     key = lambda p: tuple(np.round(p, 3))
     ec = collections.Counter()

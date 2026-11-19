@@ -47,7 +47,7 @@ sheet.save(f"{out}/renders.png")
 
 # ---- flat print layout --------------------------------------------------
 SC = 3.0
-polys = {k: M.profile(k, pockets=False) for k in "AB"}
+polys = {k: M.profile(k) for k in "AB"}
 Hh = int((M.top(M.L) + 10) * SC)
 img = Image.new("RGB", (int(M.L * SC) + 80, 2 * (Hh + 70) + 20), (255, 255, 255))
 d = ImageDraw.Draw(img)
@@ -57,7 +57,7 @@ for i, k in enumerate("AB"):
     ox = 40
     X = lambda u: ox + u * SC
     Y = lambda v: oy - v * SC
-    col = M.PLATES[k]["color"]
+    col = Q.PL[k]["color"]
     d.polygon([(X(a), Y(b)) for a, b in poly.exterior.coords], fill=col)
     for r in poly.interiors:
         d.polygon([(X(a), Y(b)) for a, b in r.coords], fill=(255, 255, 255))
